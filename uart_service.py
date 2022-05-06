@@ -21,6 +21,8 @@ UART_TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 UART_SAFE_SIZE = 20
 import struct
 
+
+import numpy as np
 async def uart_terminal():
     """This is a simple "terminal" program that uses the Nordic Semiconductor
     (nRF) UART service. It reads from stdin and sends each line of data to the
@@ -47,10 +49,21 @@ async def uart_terminal():
     def handle_rx(_: int, data: bytearray):
         print("received:", data)
     def handle_struct_rx(_: int, data: bytearray):
-        print(len(data))
-        data_row = struct.unpack("QIb",data)
-        readings.writerow(data_row)
-        print(data_row)
+        #print(len(data))
+        
+        # from buffer
+        if len(data)>50:
+
+        
+            data_row = struct.unpack("QII",data[0:16])
+            #if data_row[1] != 0:
+            last_50 = np.frombuffer(data[16:], dtype=np.uint16)
+
+            
+            array2 = list(data_row) + list(last_50)
+            readings.writerow(array2)
+            print(array2)
+        
     async with BleakClient(device, disconnected_callback=handle_disconnect) as client:
         await client.start_notify(UART_TX_CHAR_UUID, handle_struct_rx)
 

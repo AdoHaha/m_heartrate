@@ -120,11 +120,44 @@ def make_heartrate_frame(heartrate):
 
 
 class BluetoothSender():
+    new_data_Rri = False
+    Rri = 0
+    error = 0
+    new_data_error = False
     def __init__(self):
             
             ble = bluetooth.BLE()
             self.uart_b = BLESimplePeripheral(ble)
-            
+            self.uart_b.on_write(self.nothing)
+    def nothing(self,v):
+        print(v)
+    def raw_send(self, raw_bytes):
+            try:
+                if self.uart_b.is_connected():
+
+                    self.uart_b.send(raw_bytes)
+            except:
+                pass
+    def save_Rri(self,Rri):
+        self.Rri = Rri
+        self.new_data_Rri = True
+    def save_error(self,error):
+        self.error = error
+        self.new_data_error = True
+        
+        
+    def send_heartrate_packet(self,raw_data):
+        """sends raw data with timestamp and Rri if it was available
+        if new Rri is not available self.new_data will be set to 0
+        """
+        
+        precise_time = get_time_ns()
+ 
+        self.raw_send(struct.pack("QII",precise_time, self.new_data_Rri and self.Rri, self.new_data_error and self.error) + raw_data)
+        self.new_data_Rri = False
+        self.new_data_error = False
+        
+        
     def send_bluetooth(self,Rri,error):
        if self.uart_b.is_connected():
         #p.send("hello")
@@ -137,7 +170,7 @@ class BluetoothSender():
 
             
             #if not no_send:
-                #uart_b.send(struct.pack("QI",precise_time,heart_signal))
+                #uart_b.send(struct.pack("QI",precise_time,heart_signal)) 
             self.uart_b.send(struct.pack("QIb",precise_time,Rri, int(error)))
 
             #old_time = new_time
@@ -163,6 +196,14 @@ def main_program():
     sweeppptr = 0
     uart = setup_heart_uart()
     ble_sender = BluetoothSender()
+    
+    
+    from ulab import numpy as np
+    
+    
+    framerate = 50
+    all_readings = np.empty(framerate, dtype= np.uint16)
+    
     try:
         connect_internet_set_time()
     except:
@@ -190,27 +231,38 @@ def main_program():
                     if len(number) <2:
                         print("error case", number)
                         error_f = True
-                        ble_sender.send_bluetooth(0, error_f)
+                        ble_sender.save_error(error_f)
 
                         continue
                     if number[1] == "-":
+                        ble_sender.save_error(-1*int(number[1:]))
+
                         pass
                         #print("error")
                     else:
                         
                         simple_Rri = int(number[1:])
                         print(error)
-                        ble_sender.send_bluetooth(simple_Rri, error)
+                        #ble_sender.send_bluetooth(simple_Rri, error)
+                        ble_sender.save_Rri(simple_Rri) # will save but not send the Rri, will be sent during the transfer of heartbyte data
                         print(simple_Rri)
                         #heartrate = 60000.0 / float(number[1:])
 
                 else: #just the heartbyte
+                    
+                    all_readings[sweeppptr] = int(number)
                     sweeppptr +=1
+                    
+                    
                     #print(sweeppptr)
-                    if (sweeppptr < 8):
+                    if (sweeppptr < framerate):
                         continue
                     else:
                         sweeppptr = 0
+                        print(len(all_readings.tobytes()))
+                        ble_sender.send_heartrate_packet(all_readings.tobytes())
+                        #ble_sender.raw_send(all_readings.tobytes())
+
                         try:
                             
                             heart_signal = int(number)
