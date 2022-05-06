@@ -16,7 +16,7 @@ def setup_heart_uart():
     # Set part baud and data bits, Parity bits, stop bits
     #uart.init(19200, tx= 0,rx = 26)#, bits, parity, stop)
 
-    uart.init(19200, rx = 0, tx = 26)
+    uart.init(19200, rx = 0, tx = 26, timeout = 4000)
     uart_out_buf = bytearray(1)
     uart.write("@OF30")
     uart_out_buf = 0x0a
@@ -119,11 +119,50 @@ def make_heartrate_frame(heartrate):
     return packed
 
 
+class BluetoothSender():
+    def __init__(self):
+            
+            ble = bluetooth.BLE()
+            self.uart_b = BLESimplePeripheral(ble)
+            
+    def send_bluetooth(self,Rri,error):
+       if self.uart_b.is_connected():
+        #p.send("hello")
+        try:
+            #new_time = get_time_ns()
+            precise_time = get_time_ns()
+            
+
+            #no_send = heart_signal >= 4096
+
+            
+            #if not no_send:
+                #uart_b.send(struct.pack("QI",precise_time,heart_signal))
+            self.uart_b.send(struct.pack("QIb",precise_time,Rri, int(error)))
+
+            #old_time = new_time
+            #old_heart_signal = heart_signal
+        except Exception as e:
+            #time.sleep(0.003)
+            #try:
+            #    uart_b.send(struct.pack("QI",precise_time,heart_signal))
+            #except:
+            #    pass
+            print(e,"error",Rri,precise_time, error)
+            #print(number)
+            
+       else:
+            pass
+            #print("not connected")
+    
+
+    
+
 def main_program():
+    error = False
     sweeppptr = 0
     uart = setup_heart_uart()
-    ble = bluetooth.BLE()
-    uart_b = BLESimplePeripheral(ble)
+    ble_sender = BluetoothSender()
     try:
         connect_internet_set_time()
     except:
@@ -149,13 +188,21 @@ def main_program():
                 if number[0] == "#": #special case
                     #print(result)
                     if len(number) <2:
-                        print("error case")
+                        print("error case", number)
+                        error_f = True
+                        ble_sender.send_bluetooth(0, error_f)
+
                         continue
                     if number[1] == "-":
                         pass
                         #print("error")
                     else:
-                        heartrate = 60000.0 / float(number[1:])
+                        
+                        simple_Rri = int(number[1:])
+                        print(error)
+                        ble_sender.send_bluetooth(simple_Rri, error)
+                        print(simple_Rri)
+                        #heartrate = 60000.0 / float(number[1:])
 
                 else: #just the heartbyte
                     sweeppptr +=1
@@ -164,43 +211,18 @@ def main_program():
                         continue
                     else:
                         sweeppptr = 0
-                    try:
-                    
-                        heart_signal = int(number)
-                        print(heart_signal)
-                    except:
-                        continue
-                    
-
-                    if uart_b.is_connected():
-                        #p.send("hello")
                         try:
-                            new_time = get_time_ns()
-                            precise_time = get_time_ns()
                             
-
-                            no_send = heart_signal >= 4096
-
+                            heart_signal = int(number)
                             
-                            if not no_send:
-                                #uart_b.send(struct.pack("QI",precise_time,heart_signal))
-                                uart_b.send(struct.pack("QI",precise_time,heart_signal))
-
-                            old_time = new_time
-                            old_heart_signal = heart_signal
-                        except Exception as e:
-                            time.sleep(0.003)
-                            try:
-                                uart_b.send(struct.pack("QI",precise_time,heart_signal))
-                            except:
-                                pass
-                            print(e,"error",heart_signal,precise_time)
-                            #print(number)
+                            error =  heart_signal >= 4096 or heart_signal == 0 # have some measure of error
                             
-                    else:
-                        pass
-                        #print("not connected")
+                            #print(result)
+                        except:
+                            error = True
+                            continue
                     
+
             except UnicodeError:
                 print("UnicodeError")
                 
