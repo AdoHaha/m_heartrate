@@ -24,15 +24,13 @@ tft = st7789.ST7789(spi, 135, 240,
                     cs=machine.Pin(5, machine.Pin.OUT),
                     buf=bytearray(2048))
 
+#tft.initg ()
 
-c = colors.rgb565(
-    random.getrandbits(0),
-    random.getrandbits(0),
-    random.getrandbits(0),
-)
+
 tft.fill(colors.RED)
 
-
+sys_i2c = machine.I2C (0, sda = Pin (21), scl = Pin (22))
+sys_i2c.writeto_mem(52, 0x12, b'\x1f') # enable LDO3/2 (TFT and TFT_LED)
 
 
 
@@ -240,6 +238,7 @@ def main_program():
     nN = 0
     old_heart_signal = 0
     no_send = False
+    state = False
     while True:
         result = uart.readline()
         nN += 1
@@ -263,18 +262,23 @@ def main_program():
                         continue
                     if number[1] == "-":
                         ble_sender.save_error(-1*int(number[1:]))
-                        tft.fill(colors.RED)
-
+                        if state: # draw only when different state
+                            tft.fill(colors.RED)
+                            state = False
                         pass
                         #print("error")
                     else:
                         
                         simple_Rri = int(number[1:])
-                        print(error)
+                        #print(error)
                         #ble_sender.send_bluetooth(simple_Rri, error)
                         ble_sender.save_Rri(simple_Rri) # will save but not send the Rri, will be sent during the transfer of heartbyte data
                         print(simple_Rri)
-                        tft.fill(colors.GREEN)
+                        if not state: # draw only when different state
+                            tft.fill(colors.GREEN)
+                            state = True
+                        #tft.fill(colors.GREEN)
+                        tft.text(number[1:], 10, 30, colors.WHITE, colors.GREEN)
                         #heartrate = 60000.0 / float(number[1:])
 
                 else: #just the heartbyte
@@ -307,7 +311,7 @@ def main_program():
             except UnicodeError:
                 print("UnicodeError")
                 
-
+tft.fill(colors.RED)
 main_program()
 #except Exception as e:
 #    print(e)
