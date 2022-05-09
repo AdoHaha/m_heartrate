@@ -9,6 +9,33 @@ import machine
 #lcd.text(lcd.CENTER, lcd.CENTER, 'user app')
 
 
+import machine
+from machine import Pin
+import lib.colors as colors
+import lib.st7789 as st7789
+
+
+
+spi = machine.SPI(1, baudrate = 20_000_000, polarity = 1, sck = Pin (13), miso = Pin (14), mosi = Pin (15))
+
+tft = st7789.ST7789(spi, 135, 240,
+                    reset=machine.Pin(18, machine.Pin.OUT),
+                    dc=machine.Pin(23, machine.Pin.OUT),
+                    cs=machine.Pin(5, machine.Pin.OUT),
+                    buf=bytearray(2048))
+
+
+c = colors.rgb565(
+    random.getrandbits(0),
+    random.getrandbits(0),
+    random.getrandbits(0),
+)
+tft.fill(colors.RED)
+
+
+
+
+
 def setup_heart_uart():
     # Set uart port and tx rx
     uart = machine.UART(1)
@@ -236,6 +263,7 @@ def main_program():
                         continue
                     if number[1] == "-":
                         ble_sender.save_error(-1*int(number[1:]))
+                        tft.fill(colors.RED)
 
                         pass
                         #print("error")
@@ -246,6 +274,7 @@ def main_program():
                         #ble_sender.send_bluetooth(simple_Rri, error)
                         ble_sender.save_Rri(simple_Rri) # will save but not send the Rri, will be sent during the transfer of heartbyte data
                         print(simple_Rri)
+                        tft.fill(colors.GREEN)
                         #heartrate = 60000.0 / float(number[1:])
 
                 else: #just the heartbyte
