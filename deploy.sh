@@ -5,7 +5,7 @@ ESPPORT=${1-/dev/ttyUSB0}
 ampy --port $ESPPORT put on_controller/bluetooth_simple
 ampy --port $ESPPORT put on_controller/lib
 
-for ff in on_controller/main.py
+for ff in on_controller/main.py on_controller/setup.py
 do
     echo $ff
     ampy --port $ESPPORT put $ff

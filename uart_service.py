@@ -43,8 +43,9 @@ async def uart_terminal():
     def handle_disconnect(_: BleakClient):
         print("Device was disconnected, goodbye.")
         # cancelling all tasks effectively ends the program
-        for task in asyncio.all_tasks():
-            task.cancel()
+        #for task in asyncio.all_tasks():
+        #    task.cancel()
+        print("hopefully we can still survice somehow")
 
     def handle_rx(_: int, data: bytearray):
         print("received:", data)
@@ -54,7 +55,7 @@ async def uart_terminal():
         # from buffer
         if len(data)>50:
 
-        
+            
             data_row = struct.unpack("QII",data[0:16])
             #if data_row[1] != 0:
             last_50 = np.frombuffer(data[16:], dtype=np.uint16)
@@ -92,7 +93,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Save some sensor data')
 
-parser.add_argument('--cwiczenie', help="nazwa cwiczenia")
+parser.add_argument('--filepath', help="nazwa cwiczenia")
 
 args = parser.parse_args()
 
@@ -103,13 +104,19 @@ import csv
 if __name__ == "__main__":
     
     timest = datetime.datetime.fromtimestamp(time.time())
-    filename = args.cwiczenie+"__"+timest.isoformat()+".csv"
+    filename = args.filepath+"__"+timest.isoformat()+".csv"
     filename = filename.replace(":","_")
     with open(filename,"w",newline="") as csvfile:
         readings = csv.writer(csvfile, delimiter = ",")
         
+       
         try:
             asyncio.run(uart_terminal())
         except asyncio.CancelledError:
             # task is cancelled on disconnect, so we ignore this error
             pass
+        except KeyboardInterrupt:
+            for task in asyncio.all_tasks():
+                task.cancel()
+                break
+        print("reconnecting")

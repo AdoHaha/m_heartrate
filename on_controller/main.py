@@ -241,7 +241,7 @@ def main_program():
     all_readings = np.empty(framerate, dtype=np.uint16)
 
     try:
-        connect_internet_set_time()
+        connect_internet_set_time(network_name=setup.network_name, password=setup.password)
     except BaseException:
         pass
     old_time = get_time_ns()
@@ -304,7 +304,7 @@ def main_program():
                         continue
                     else:
                         sweeppptr = 0
-                        print(len(all_readings.tobytes()))
+                        #print(len(all_readings.tobytes()))
                         ble_sender.send_heartrate_packet(
                             all_readings.tobytes())
                         # ble_sender.raw_send(all_readings.tobytes())
@@ -322,6 +322,8 @@ def main_program():
 
             except UnicodeError:
                 print("UnicodeError")
+            except Exception as e:
+                print(e)
 
 
 tft.fill(colors.RED)

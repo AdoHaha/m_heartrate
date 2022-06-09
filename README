@@ -1,0 +1,17 @@
+To use the heartrate sensor
+
+activate conda environment
+
+conda activate heartrate
+
+To save data from heartrate sensor (BLE)
+
+python uart_service.py --filepath DESIREDFILEPATH
+
+to close the recording use CTRL C two or three times
+
+
+####
+TO UPLOAD firmware (micropython, ulab) to new microcontroller use prepare_deep_flash.sh file
+
+./prepare_deep_flash.sh
